@@ -21,6 +21,62 @@ var cannonBallA,
   engine = Engine.create();
 var world = engine.world;
 
+/** This function will disable the selection of low gravity and high gravity options. */
+var disableForWind = function () {
+  $("#lglabel").toggleClass("disabled");
+  if (!$("#lowgravitycheckbox").prop("disabled")) {
+    $("#lowgravitycheckbox").attr("disabled", true);
+  }
+  else {
+    $("#lowgravitycheckbox").attr("disabled", false);
+  }
+
+  $("#hglabel").toggleClass("disabled");
+  if (!$("#highgravitycheckbox").prop("disabled")) {
+    $("#highgravitycheckbox").attr("disabled", true);
+  }
+  else {
+    $("#highgravitycheckbox").attr("disabled", false);
+  }
+}
+/** This function will disable the selection of wind and high gravity options. */
+var disableForLG = function () {
+  $("#windlabel").toggleClass("disabled");
+  if (!$("#windcheckbox").prop("disabled")) {
+    $("#windcheckbox").attr("disabled", true);
+  }
+  else {
+    $("#windcheckbox").attr("disabled", false);
+  }
+
+  $("#hglabel").toggleClass("disabled");
+  if (!$("#highgravitycheckbox").prop("disabled")) {
+    $("#highgravitycheckbox").attr("disabled", true);
+  }
+  else {
+    $("#highgravitycheckbox").attr("disabled", false);
+  }
+}
+
+/** This function will disable the selection of wind and low gravity options. */
+var disableForHG = function () {
+  $("#windlabel").toggleClass("disabled");
+  if (!$("#windcheckbox").prop("disabled")) {
+    $("#windcheckbox").attr("disabled", true);
+  }
+  else {
+    $("#windcheckbox").attr("disabled", false);
+  }
+
+  $("#lglabel").toggleClass("disabled");
+  if (!$("#lowgravitycheckbox").prop("disabled")) {
+    $("#lowgravitycheckbox").attr("disabled", true);
+  }
+  else {
+    $("#lowgravitycheckbox").attr("disabled", false);
+  }
+}
+
 var newGravity = 0;
 var direction = "";
 var canvasbg = "./assets/images/canvasbg.jpg";
@@ -94,7 +150,7 @@ $(document).ready(function () {
 
   // Added by Natraj
   // Click to mute
-  $(".fa-volume-off").click(function() {
+  $(".fa-volume-off").click(function () {
     soundLevel = 0;
     bgSoundLevel = 0;
     audio.cannonSound.volume = soundLevel;
@@ -106,7 +162,7 @@ $(document).ready(function () {
     $("#volume").val("0");
   });
 
-  $(".fa-volume-up").click(function() {
+  $(".fa-volume-up").click(function () {
     soundLevel = 1;
     bgSoundLevel = (100 / 100 * 0.25);
     audio.cannonSound.volume = soundLevel;
@@ -152,17 +208,21 @@ $(document).ready(function () {
    * Function will hide the canvas shadow, and add a new canvas for the game.
    * Function will then run startGame() and clickButton() functions. 
    * Function will also check if wind, or wall option has been checked and include them in the game.
+   * Function will also check if low gravity or high gravity option has been checked and include them in the game.
    */
   $("#start-game").on("click", function () {
     gameBot.hideStartMenu();
-    // $(".canvas").addClass("hidden");
-    // canvas.classList.remove("hidden");
-    // canvas.classList.add("canvas");
     gameBot.startGame();
     clickButton();
     if ($("#windcheckbox").is(":checked")) {
       setWindFlag(true);
       gameBot.setWindOptions(window.gameInfo);
+    }
+    if ($("#lowgravitycheckbox").is(":checked")) {
+      setLGFlag(true);
+    }
+    if ($("#highgravitycheckbox").is(":checked")) {
+      setHGFlag(true);
     }
     if ($("#wallcheckbox").is(":checked")) {
       setWallFlag(true);
@@ -216,17 +276,17 @@ $(document).ready(function () {
   runner.delta = 1000 / 60;
   Runner.run(runner, engine);
 
-  
-/**
-* when a collision occurs, this function checks the pairs of colliding objects and acts based on what the cannonball is colliding with.
-  Any Object: stops velocity and rotational velocity to avoid rolling and the ball moving when it is reset.
-  Cannon: resets the cannonball and triggers winning/losing conditions based on the cannon.
-  Ground: resets the cannonball and leaves a marker at the location of impact.
-* @param {obj} engine - the game engine to check for collisions.
-* @param {string} event - the name of the specific event occurring in the engine.
-* @param {function} - anonymous function that runs the logic that compares the returned collision event pairs.
-* @return {undefined}
-*/
+
+  /**
+  * when a collision occurs, this function checks the pairs of colliding objects and acts based on what the cannonball is colliding with.
+    Any Object: stops velocity and rotational velocity to avoid rolling and the ball moving when it is reset.
+    Cannon: resets the cannonball and triggers winning/losing conditions based on the cannon.
+    Ground: resets the cannonball and leaves a marker at the location of impact.
+  * @param {obj} engine - the game engine to check for collisions.
+  * @param {string} event - the name of the specific event occurring in the engine.
+  * @param {function} - anonymous function that runs the logic that compares the returned collision event pairs.
+  * @return {undefined}
+  */
   Events.on(engine, "collisionActive", function (event) {
     var pairs = event.pairs;
     for (var i = 0; i < pairs.length; i++) {
@@ -244,7 +304,6 @@ $(document).ready(function () {
       }
       //checks for impact with enemy cannons and ground
       if ((pair.bodyA.label === "cannonBallA" && pair.bodyB.label === "cannonB") || (pair.bodyB.label === "cannonBallA" && pair.bodyA.label === "cannonB")) {
-        //TODO trigger explosion
         cannonballBot.resetBallA();
         alertBot.playerOneWin(window.gameInfo);
         hitsprite = Bodies.circle(cannonB.position.x, cannonB.position.y, 16, {
@@ -261,7 +320,6 @@ $(document).ready(function () {
         audio.winSound.play();//This will play the winning sound when p1 wins.
       }
       if ((pair.bodyA.label === "cannonBallB" && pair.bodyB.label === "cannonA") || (pair.bodyB.label === "cannonBallB" && pair.bodyA.label === "cannonA")) {
-        //TODO trigger explosion
         cannonballBot.resetBallB();
         audio.winSound.play();//This will play the winning sound when p2 wins.
         hitsprite = Bodies.circle(cannonA.position.x, cannonA.position.y, 16, {
@@ -331,12 +389,12 @@ $(document).ready(function () {
     }
   });
 
-/**
-* Checks the game after every engine tick to see if the cannonball has exceeded the world bounds. Resets it if so.
-* @param {obj} engine - the game engine to use for position checks
-* @param {string} event - the name of the specific event - the end of an engine tick
-* @return {undefined}
-*/
+  /**
+  * Checks the game after every engine tick to see if the cannonball has exceeded the world bounds. Resets it if so.
+  * @param {obj} engine - the game engine to use for position checks
+  * @param {string} event - the name of the specific event - the end of an engine tick
+  * @return {undefined}
+  */
   Events.on(engine, 'afterTick', function () {
     if (cannonBallA && cannonBallB) {
       if (cannonBallA.position.x > world.bounds.max.x || cannonBallA.position.x < world.bounds.min.x) {

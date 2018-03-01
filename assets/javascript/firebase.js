@@ -32,6 +32,8 @@ var firebaseBot = (function() {
         },
         gameStart: false,
         wall: false,
+        lowgravity: false,
+        highgravity: false,
         playAgain: false,
       },
       playerTwo: {
@@ -90,20 +92,26 @@ var firebaseBot = (function() {
   }
 
   /**
-   * getWindOptions
-   * reads the game wind options from the database for the game to set wind
-   * conditions locally
+   * getGameOptions
+   * reads the playerOne object from the database for the game to set wind, low
+   * & high gravity for player 2
    * @param {object} gameInfo - The object that holds the state of the current
    * game
    * @returns {undefined}
    */
-  function getWindOptions(gameInfo) {
-    var gameRef = firebaseBot.database.ref("games/" + gameInfo.gameId + "/playerOne/windInfo");
+  function getGameOptions(gameInfo) {
+    var gameRef = firebaseBot.database.ref("games/" + gameInfo.gameId + "/playerOne");
     gameRef.once("value").then(function (snapshot) {
-      if (snapshot.val().wind) {
+      if (snapshot.val().lowgravity) {
+        setLGFlag(true);
+      }
+      if (snapshot.val().highgravity) {
+        setHGFlag(true);
+      }
+      if (snapshot.val().windInfo.wind) {
         gameInfo.wind = true; 
-        direction = snapshot.val().direction;
-        windSpeed = snapshot.val().speed;
+        direction = snapshot.val().windInfo.direction;
+        windSpeed = snapshot.val().windInfo.speed;
         setGravityAndBg();
       }
     });
@@ -209,6 +217,22 @@ var firebaseBot = (function() {
     }
   }  
 
+  function updateLowGravityInfo(gameInfo) {
+    if (gameInfo.lowgravity) {
+      database.ref('games/' + gameInfo.gameId + "/playerOne").update({
+        lowgravity: gameInfo.lowgravity 
+      });
+    }
+  }
+
+  function updateHighGravityInfo(gameInfo) {
+    if (gameInfo.highgravity) {
+      database.ref('games/' + gameInfo.gameId + "/playerOne").update({
+        highgravity: gameInfo.highgravity 
+      });
+    }
+  }
+
   /**
    * updateWallInfo
    * updates the existence of a wall in the database
@@ -226,16 +250,18 @@ var firebaseBot = (function() {
   var publicAPI = {
     database,
     updateWindInfo,
+    updateLowGravityInfo,
+    updateHighGravityInfo,
     updatePositions,
     resetGameData,
     createNewGame,
     incrementShotsFired,
     updateAnglePower,
     updateWallInfo,
-    getWindOptions,
+    getGameOptions,
     getWallOptions,
     restartGame,
-    changePlayAgain,
+    changePlayAgain
   };
 
   return publicAPI;
